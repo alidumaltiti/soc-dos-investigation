@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOC Dashboard | Incident #9102</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --panel-bg: #ffffff;
+            --text-main: #333333;
+            --text-secondary: #666666;
+            --corp-blue: #0056b3;
+            --light-blue: #e6f0ff;
+            --alert-red: #dc3545;
+            --warning-orange: #fd7e14;
+            --success-green: #28a745;
+            --border-color: #e1e8ed;
+            --shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        
+        * { box-sizing: border-box; }
+        
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; }
+        header { display: flex; justify-content: space-between; align-items: center; background: var(--corp-blue); color: white; padding: 15px 25px; border-radius: 8px; margin-bottom: 25px; box-shadow: var(--shadow); }
+        .header-info { display: flex; gap: 20px; font-size: 0.9rem; opacity: 0.9; }
+        .dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        
+        .panel { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 25px; box-shadow: var(--shadow); }
+        .panel-title { color: var(--corp-blue); font-size: 1.2rem; font-weight: 700; margin-top: 0; margin-bottom: 20px; border-bottom: 2px solid var(--light-blue); padding-bottom: 10px; display: flex; justify-content: space-between; }
+        
+        .log-viewer { font-family: 'SFMono-Regular', Consolas, monospace; background-color: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 6px; height: 350px; overflow-y: auto; font-size: 0.85rem; border: 1px solid #333; line-height: 1.6; }
+        .log-sys { color: #569cd6; font-style: italic; }
+        .log-error { color: #f44336; font-weight: bold; }
+        .log-timeout { color: #ff9800; }
+        .log-ok { color: #4caf50; }
+
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; text-transform: uppercase; }
+        .status-critical { background-color: #f8d7da; color: var(--alert-red); border: 1px solid #f5c6cb; animation: pulse 2s infinite; }
+        .status-resolved { background-color: #d4edda; color: var(--success-green); border: 1px solid #c3e6cb; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        .stat-row { display: flex; justify-content: space-between; padding: 10px; background: #f8f9fa; border-radius: 4px; margin-bottom: 10px; font-size: 0.9rem; border: 1px solid #e1e8ed; }
+        
+        .cpu-bar-container { width: 100%; background-color: #e9ecef; border-radius: 4px; height: 20px; overflow: hidden; margin-top: 5px; }
+        .cpu-bar { height: 100%; width: 99%; background-color: var(--alert-red); animation: jitter 0.5s infinite; }
+        @keyframes jitter { 0% { width: 98%; } 50% { width: 100%; } 100% { width: 99%; } }
+
+        .action-btn { background-color: var(--corp-blue); color: white; border: none; padding: 12px 20px; cursor: pointer; border-radius: 6px; font-size: 0.9rem; font-weight: bold; transition: 0.2s; width: 100%; text-align: center; text-decoration: none; display: inline-block; }
+        .action-btn:hover { background-color: #004494; }
+        .btn-fix { background-color: var(--alert-red); margin-bottom: 10px; }
+        .btn-fix:hover { background-color: #c82333; }
+        .btn-fix:disabled { background-color: #e5929b; cursor: not-allowed; }
+
+        .guide-step { padding: 15px; border-radius: 6px; background-color: white; border-left: 4px solid #e1e8ed; margin-bottom: 15px; transition: all 0.3s; color: var(--text-secondary); }
+        .guide-step.active { border-left-color: var(--warning-orange); background-color: #fff3cd; color: #856404; transform: translateX(5px); box-shadow: var(--shadow); }
+        .guide-step h3 { margin: 0 0 5px 0; font-size: 1rem; }
+        .guide-step p { margin: 0; font-size: 0.9rem; line-height: 1.4; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1 style="margin:0; font-size:1.4rem;">Corporate SOC | Incident #9102</h1>
+            <span style="font-size:0.8rem; opacity:0.8;">Case Subject: yummyrecipesforme.com</span>
+        </div>
+        <div class="header-info">
+            <span id="live-clock"></span>
+            <span>GMT (GH)</span>
+            <span>Analyst: Maltiti</span>
+        </div>
+        <div class="status-badge status-critical" id="main-status">Layer 7 DoS Active</div>
+    </header>
+
+    <div class="dashboard-grid">
+        
+        <div>
+            <div class="panel" style="margin-bottom: 20px;">
+                <h2 class="panel-title">Server Resource Metrics</h2>
+                <div class="stat-row">
+                    <span><b>CPU Utilization:</b> <span id="cpu-text" style="color:var(--alert-red); font-weight:bold;">99.9%</span></span>
+                    <span><b>Active Connections:</b> <span id="conn-text" style="color:var(--warning-orange); font-weight:bold;">14,208</span></span>
+                </div>
+                <div class="cpu-bar-container"><div class="cpu-bar" id="cpu-bar"></div></div>
+            </div>
+
+            <div class="panel">
+                <h2 class="panel-title">Live Web Server Access Logs (Nginx)</h2>
+                <div class="log-viewer" id="main-terminal"></div>
+                <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <button class="action-btn btn-fix" id="btn-fix" onclick="mitigateIssue()">Isolate IP: 198.51.100.42 (Drop Traffic)</button>
+                    <a href="incident-report/DoS_Incident_Report.pdf" target="_blank" class="action-btn">View Official Report (PDF)</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" style="background:#f8f9fa;">
+            <h2 class="panel-title">Investigation Walkthrough</h2>
+            <div id="guide-container">
+                <div class="guide-step active" id="step-0">
+                    <h3>01. Resource Exhaustion</h3>
+                    <p>Monitoring triggers critical CPU alerts. The web application is returning 503 (Service Unavailable) and 408 (Request Timeout) errors to users.</p>
+                </div>
+                <div class="guide-step" id="step-1">
+                    <h3>02. Access Log Triage</h3>
+                    <p>Tailing the Nginx access logs reveals a massive spike in inbound traffic. Normal log patterns are completely overwhelmed.</p>
+                </div>
+                <div class="guide-step" id="step-2">
+                    <h3>03. Pattern Recognition</h3>
+                    <p>A single IP (<span style="color:var(--alert-red); font-weight:bold;">198.51.100.42</span>) is repeatedly requesting the resource-intensive `/search?q=dinner` endpoint. This is an HTTP Flood attack.</p>
+                </div>
+                <div class="guide-step" id="step-3">
+                    <h3>04. Mitigation Strategy</h3>
+                    <p>Immediate action required: Implement an `iptables` drop rule for the offending IP to restore CPU availability for legitimate traffic.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        setInterval(() => { document.getElementById('live-clock').textContent = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC'; }, 1000);
+
+        const terminal = document.getElementById('main-terminal');
+        let isAttacking = true;
+
+        function updateGuideHighlight(stepId) {
+            document.querySelectorAll('.guide-step').forEach(el => el.classList.remove('active'));
+            document.getElementById(`step-${stepId}`).classList.add('active');
+        }
+
+        function generateLogs() {
+            const time = new Date().toISOString().replace('T', ' ').substring(0, 19);
+            let logLine = "";
+
+            if (isAttacking) {
+                const isAttacker = Math.random() > 0.15; // 85% of traffic is the attacker
+                if (isAttacker) {
+                    logLine = `<span class='log-error'>198.51.100.42 - - [${time} +0000] "GET /search?q=dinner HTTP/1.1" 503 211 "-" "Bot/1.0"</span><br>`;
+                } else {
+                    logLine = `<span class='log-timeout'>192.0.2.${Math.floor(Math.random()*100)} - - [${time} +0000] "GET /recipes/cake HTTP/1.1" 408 0 "-" "Mozilla/5.0"</span><br>`;
+                }
+            } else {
+                // Normal traffic after mitigation
+                logLine = `<span class='log-ok'>192.0.2.${Math.floor(Math.random()*100)} - - [${time} +0000] "GET /recipes/cake HTTP/1.1" 200 4521 "-" "Mozilla/5.0"</span><br>`;
+            }
+
+            terminal.innerHTML += logLine;
+            terminal.scrollTop = terminal.scrollHeight;
+            if (terminal.childElementCount > 40) terminal.removeChild(terminal.firstChild);
+            
+            setTimeout(generateLogs, isAttacking ? 100 : 1500);
+        }
+
+        // Sequence timing for guide panel
+        setTimeout(() => updateGuideHighlight(1), 3000);
+        setTimeout(() => updateGuideHighlight(2), 6000);
+
+        // Start logging
+        terminal.innerHTML += "<span class='log-sys'>root@soc-terminal:~# tail -f /var/log/nginx/access.log</span><br>";
+        setTimeout(generateLogs, 1000);
+
+        function mitigateIssue() {
+            isAttacking = false;
+            document.getElementById('btn-fix').disabled = true;
+            updateGuideHighlight(3);
+            
+            terminal.innerHTML += "<br><span class='log-sys'>root@soc-terminal:~# iptables -A INPUT -s 198.51.100.42 -j DROP</span><br>";
+            terminal.innerHTML += "<span class='log-sys'>Rule applied. Monitoring traffic stabilization...</span><br><br>";
+            
+            document.getElementById('cpu-bar').style.animation = "none";
+            document.getElementById('cpu-bar').style.width = "12%";
+            document.getElementById('cpu-bar').style.backgroundColor = "var(--success-green)";
+            document.getElementById('cpu-text').innerText = "12.4%";
+            document.getElementById('cpu-text').style.color = "var(--success-green)";
+            document.getElementById('conn-text').innerText = "241";
+            document.getElementById('conn-text').style.color = "var(--success-green)";
+            
+            document.getElementById('main-status').className = 'status-badge status-resolved';
+            document.getElementById('main-status').innerText = 'Incident Resolved';
+        }
+    </script>
+</body>
+</html>
