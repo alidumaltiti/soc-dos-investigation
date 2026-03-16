@@ -56,6 +56,51 @@
         .guide-step.active { border-left-color: var(--warning-orange); background-color: #fff3cd; color: #856404; transform: translateX(5px); box-shadow: var(--shadow); }
         .guide-step h3 { margin: 0 0 5px 0; font-size: 1rem; }
         .guide-step p { margin: 0; font-size: 0.9rem; line-height: 1.4; }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .header-info {
+                flex-direction: column;
+                gap: 8px;
+                align-items: flex-start;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .panel {
+                padding: 15px;
+            }
+
+            .log-viewer {
+                height: 300px;
+            }
+
+            .action-btn {
+                padding: 15px 10px;
+                font-size: 0.85rem;
+            }
+            
+            [onclick="mitigateIssue()"] {
+                margin-bottom: 10px;
+            }
+
+            div[style*="grid-template-columns: 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+                gap: 10px;
+            }
+        }
     </style>
 </head>
 <body>
